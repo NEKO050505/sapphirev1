@@ -1,6 +1,4 @@
--- ========== SAPPHIRE MAX ==========
--- 40+ features in 1 script
-
+-- ========== SAPPHIRE MAX (Third-Person OFF) ==========
 local Players=game:GetService("Players")
 local RunService=game:GetService("RunService")
 local CoreGui=game:GetService("CoreGui")
@@ -9,23 +7,16 @@ local lp=Players.LocalPlayer
 local mouse=lp:GetMouse()
 
 local s={
-    -- Aimbot
     aimbot=true, silent=true, trigger=true, fov=200, smooth=0.3, hitchance=100, prediction=true,
-    -- ESP
-    esp=true, espBox=true, espName=true, espHealth=true, espDistance=true, espSkeleton=false, espTracer=true, espGlow=false,
-    -- Visuals
+    esp=true, espBox=true, espName=true, espHealth=true, espDistance=true, espTracer=true, espGlow=false,
     crosshair=true, chColor=Color3.fromRGB(0,191,255), chSize=25, chShape="circle",
-    -- Movement
     spin=false, spinSpeed=30, orbit=false, orbitSpeed=20, orbitRadius=15, void=false, voidRange=50, fly=false, flySpeed=100, noclip=false,
-    -- Misc
-    noRecoil=true, antiAim=false, teamCheck=true, thirdPerson=true, hitsound=true, watermark=true,
-    -- Configs
+    noRecoil=true, antiAim=false, teamCheck=true, thirdPerson=false, -- DISABLED
+    hitsound=true, watermark=true,
     configName="Default",
-    -- Priority
     priority="Closest"
 }
 
--- Aimbot with Prediction
 local function getTarget()
     local best,bestD=nil,s.fov
     local c=Vector2.new(mouse.X,mouse.Y)
@@ -43,7 +34,6 @@ local function getTarget()
     return best
 end
 
--- ESP with Glow
 local espFolder=Instance.new("Folder",CoreGui)
 espFolder.Name="SapphireESP"
 local function updateESP()
@@ -118,7 +108,6 @@ local function updateESP()
     end
 end
 
--- Crosshair
 local crosshair=Instance.new("Frame",CoreGui)
 crosshair.AnchorPoint=Vector2.new(0.5,0.5)
 crosshair.BackgroundTransparency=1
@@ -137,7 +126,6 @@ local function updateCrosshair()
     end
 end
 
--- Fly
 local bv=nil
 local function fly()
     if not s.fly then if bv then bv:Destroy() end return end
@@ -155,14 +143,12 @@ local function fly()
     bv.Velocity=dir*s.flySpeed
 end
 
--- Noclip
 local function noclip()
     if not s.noclip then return end
     local char=lp.Character
     if char then for _,p in pairs(char:GetDescendants()) do if p:IsA("BasePart") then p.CanCollide=false end end end
 end
 
--- Combat
 local function combat()
     if not s.aimbot then return end
     local target=getTarget()
@@ -175,16 +161,13 @@ local function combat()
     end
 end
 
--- Main loops
 RunService.RenderStepped:Connect(function()
     combat()
     updateESP()
     updateCrosshair()
     fly()
     noclip()
-    if s.thirdPerson and lp.Character and lp.Character:FindFirstChild("Humanoid") then
-        lp.Character.Humanoid.CameraOffset=Vector3.new(0,2,-5)
-    end
+    -- Third-Person DISABLED - no camera changes
 end)
 
-print("Sapphire MAX Loaded - 40+ Features")
+print("Sapphire MAX Loaded - Third-Person OFF") 
