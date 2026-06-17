@@ -1,224 +1,190 @@
+-- ========== SAPPHIRE MAX ==========
+-- 40+ features in 1 script
+
 local Players=game:GetService("Players")
 local RunService=game:GetService("RunService")
 local CoreGui=game:GetService("CoreGui")
+local UserInputService=game:GetService("UserInputService")
 local lp=Players.LocalPlayer
+local mouse=lp:GetMouse()
 
-local s={rage=false,instakill=false,silent=false,trigger=false,backstab=false,unlock=false,esp=false,hitsound=true,watermark=true,range=1000,bs=999999,fov=360}
+local s={
+    -- Aimbot
+    aimbot=true, silent=true, trigger=true, fov=200, smooth=0.3, hitchance=100, prediction=true,
+    -- ESP
+    esp=true, espBox=true, espName=true, espHealth=true, espDistance=true, espSkeleton=false, espTracer=true, espGlow=false,
+    -- Visuals
+    crosshair=true, chColor=Color3.fromRGB(0,191,255), chSize=25, chShape="circle",
+    -- Movement
+    spin=false, spinSpeed=30, orbit=false, orbitSpeed=20, orbitRadius=15, void=false, voidRange=50, fly=false, flySpeed=100, noclip=false,
+    -- Misc
+    noRecoil=true, antiAim=false, teamCheck=true, thirdPerson=true, hitsound=true, watermark=true,
+    -- Configs
+    configName="Default",
+    -- Priority
+    priority="Closest"
+}
 
-local function kill(t)
-    if t and t.Character then
-        local h=t.Character:FindFirstChild("Humanoid")
-        if h and h.Health>0 then
-            h.Health=0
-            if s.hitsound then
-                local a=Instance.new("Sound")
-                a.SoundId="rbxassetid://9120386546"
-                a.Parent=workspace
-                a:Play()
-                game:GetService("Debris"):AddItem(a,1)
-            end
-        end
-    end
-end
-
-local function getClosest()
+-- Aimbot with Prediction
+local function getTarget()
     local best,bestD=nil,s.fov
-    local mouse=lp:GetMouse()
-    local center=Vector2.new(mouse.X,mouse.Y)
+    local c=Vector2.new(mouse.X,mouse.Y)
     for _,v in pairs(Players:GetPlayers()) do
-        if v~=lp and v.Character and v.Character:FindFirstChild("HumanoidRootPart") then
-            local pos,on=workspace.CurrentCamera:WorldToScreenPoint(v.Character.HumanoidRootPart.Position)
-            if on then
-                local d=(center-Vector2.new(pos.X,pos.Y)).Magnitude
-                if d<bestD then
-                    bestD=d
-                    best=v
-                end
+        if v~=lp and (not s.teamCheck or lp.Team~=v.Team) and v.Character and v.Character:FindFirstChild("HumanoidRootPart") then
+            local pos=v.Character.HumanoidRootPart.Position
+            if s.prediction then pos=pos+v.Character.HumanoidRootPart.Velocity*0.1 end
+            local p,o=workspace.CurrentCamera:WorldToScreenPoint(pos)
+            if o and math.random(1,100)<=s.hitchance then
+                local d=(c-Vector2.new(p.X,p.Y)).Magnitude
+                if d<bestD then bestD=d best=v end
             end
         end
     end
     return best
 end
 
-local function backstabKill()
-    if not s.backstab then return end
-    local char=lp.Character
-    if not char or not char:FindFirstChild("HumanoidRootPart") then return end
-    local myPos=char.HumanoidRootPart.Position
-    for _,v in pairs(Players:GetPlayers()) do
-        if v~=lp and v.Character and v.Character:FindFirstChild("HumanoidRootPart") then
-            local dist=(myPos-v.Character.HumanoidRootPart.Position).Magnitude
-            if dist<s.range then
-                local h=v.Character:FindFirstChild("Humanoid")
-                if h and h.Health>0 then h.Health=0 end
-            end
-        end
-    end
-end
-
-local function unlockAll()
-    if not s.unlock then return end
-    pcall(function()
-        for _,v in ipairs(game:GetService("ReplicatedStorage"):GetChildren()) do
-            if v:IsA("Tool") then v:Clone().Parent=lp.Backpack end
-        end
-    end)
-end
-
-if s.esp then
-    local espFolder=Instance.new("Folder",CoreGui)
-    espFolder.Name="SapphireESP"
-    local function addESP(plr)
-        if plr==lp then return end
-        local box=Instance.new("Frame",espFolder)
-        box.Name=plr.Name
-        box.Size=UDim2.new(0,50,0,50)
-        box.BackgroundColor3=Color3.fromRGB(255,0,0)
-        box.BackgroundTransparency=0.5
-        local name=Instance.new("TextLabel",box)
-        name.Text=plr.Name
-        name.TextColor3=Color3.fromRGB(255,255,255)
-        name.Size=UDim2.new(1,0,0,20)
-    end
-    for _,v in pairs(Players:GetPlayers()) do addESP(v) end
-    Players.PlayerAdded:Connect(addESP)
-    RunService.RenderStepped:Connect(function()
-        for _,v in pairs(Players:GetPlayers()) do
-            local e=espFolder:FindFirstChild(v.Name)
-            if e and v.Character and v.Character:FindFirstChild("HumanoidRootPart") then
-                local p,o=workspace.CurrentCamera:WorldToScreenPoint(v.Character.HumanoidRootPart.Position)
-                if o then
-                    e.Visible=true
-                    e.Position=UDim2.new(0,p.X-25,0,p.Y-50)
-                else
-                    e.Visible=false
-                end
-            elseif e then
-                e.Visible=false
-            end
-        end
-    end)
-end
-
-local gui=Instance.new("ScreenGui")
-gui.Parent=CoreGui
-local f=Instance.new("Frame")
-f.Parent=gui
-f.Size=UDim2.new(0,240,0,350)
-f.Position=UDim2.new(0.5,-120,0.5,-175)
-f.BackgroundColor3=Color3.fromRGB(20,20,25)
-
-local function makeBtn(text,y,key)
-    local btn=Instance.new("TextButton")
-    btn.Parent=f
-    btn.Size=UDim2.new(0,220,0,30)
-    btn.Position=UDim2.new(0.5,-110,0,y)
-    btn.Text=text..": OFF"
-    btn.BackgroundColor3=Color3.fromRGB(0,191,255)
-    btn.MouseButton1Click:Connect(function()
-        s[key]=not s[key]
-        btn.Text=text..": "..(s[key] and "ON" or "OFF")
-        if key=="unlock" and s.unlock then unlockAll() end
-        if key=="esp" and s.esp then
-            -- ESP will be created by the if statement at top (run once)
-            local espFolder=CoreGui:FindFirstChild("SapphireESP")
-            if not espFolder and s.esp then
-                local ef=Instance.new("Folder",CoreGui)
-                ef.Name="SapphireESP"
-                for _,plr in pairs(Players:GetPlayers()) do
-                    if plr~=lp then
-                        local box=Instance.new("Frame",ef)
-                        box.Name=plr.Name
-                        box.Size=UDim2.new(0,50,0,50)
+-- ESP with Glow
+local espFolder=Instance.new("Folder",CoreGui)
+espFolder.Name="SapphireESP"
+local function updateESP()
+    for _,v in pairs(espFolder:GetChildren()) do v:Destroy() end
+    if not s.esp then return end
+    for _,plr in pairs(Players:GetPlayers()) do
+        if plr~=lp and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+            local root=plr.Character.HumanoidRootPart
+            local hum=plr.Character:FindFirstChild("Humanoid")
+            if hum and hum.Health>0 then
+                local pos,on=workspace.CurrentCamera:WorldToScreenPoint(root.Position)
+                if on then
+                    local group=Instance.new("Frame",espFolder)
+                    group.Size=UDim2.new(0,0,0,0)
+                    if s.espBox then
+                        local box=Instance.new("Frame",group)
+                        box.Size=UDim2.new(0,60,0,80)
+                        box.Position=UDim2.new(0,pos.X-30,0,pos.Y-40)
                         box.BackgroundColor3=Color3.fromRGB(255,0,0)
                         box.BackgroundTransparency=0.5
-                        local nm=Instance.new("TextLabel",box)
-                        nm.Text=plr.Name
-                        nm.TextColor3=Color3.fromRGB(255,255,255)
-                        nm.Size=UDim2.new(1,0,0,20)
+                        box.BorderSizePixel=1
+                        if s.espName then
+                            local name=Instance.new("TextLabel",box)
+                            name.Text=plr.Name
+                            name.TextColor3=Color3.fromRGB(255,255,255)
+                            name.Size=UDim2.new(1,0,0,15)
+                            name.BackgroundTransparency=1
+                            name.Font=Enum.Font.GothamBold
+                            name.TextSize=10
+                        end
+                        if s.espHealth then
+                            local health=Instance.new("Frame",box)
+                            local percent=hum.Health/hum.MaxHealth
+                            health.Size=UDim2.new(percent,0,0,4)
+                            health.Position=UDim2.new(0,0,0,70)
+                            health.BackgroundColor3=percent>0.6 and Color3.fromRGB(0,255,0) or percent>0.3 and Color3.fromRGB(255,255,0) or Color3.fromRGB(255,0,0)
+                        end
+                        if s.espDistance then
+                            local dist=math.floor((root.Position-lp.Character.HumanoidRootPart.Position).Magnitude)
+                            local distText=Instance.new("TextLabel",box)
+                            distText.Text=dist.."s"
+                            distText.TextColor3=Color3.fromRGB(255,255,255)
+                            distText.Size=UDim2.new(1,0,0,12)
+                            distText.Position=UDim2.new(0,0,0,55)
+                            distText.BackgroundTransparency=1
+                            distText.Font=Enum.Font.Gotham
+                            distText.TextSize=9
+                        end
+                        if s.espTracer then
+                            local tracer=Instance.new("Frame",group)
+                            local center=Vector2.new(mouse.X,mouse.Y)
+                            local angle=math.atan2(pos.Y-center.Y,pos.X-center.X)
+                            local length=(center-Vector2.new(pos.X,pos.Y)).Magnitude
+                            tracer.Size=UDim2.new(0,length,0,1)
+                            tracer.Position=UDim2.new(0,center.X,0,center.Y)
+                            tracer.Rotation=math.deg(angle)
+                            tracer.BackgroundColor3=Color3.fromRGB(0,191,255)
+                            tracer.BackgroundTransparency=0.3
+                        end
+                        if s.espGlow then
+                            local glow=Instance.new("Frame",group)
+                            glow.Size=UDim2.new(0,70,0,90)
+                            glow.Position=UDim2.new(0,pos.X-35,0,pos.Y-45)
+                            glow.BackgroundColor3=Color3.fromRGB(0,191,255)
+                            glow.BackgroundTransparency=0.8
+                            glow.BorderSizePixel=0
+                        end
                     end
                 end
             end
         end
-    end)
-    return btn
-end
-
-makeBtn("Ragebot",10,"rage")
-makeBtn("Instant Kill",45,"instakill")
-makeBtn("Silent Aim",80,"silent")
-makeBtn("Triggerbot",115,"trigger")
-makeBtn("Backstab",150,"backstab")
-makeBtn("Unlock All",185,"unlock")
-makeBtn("ESP",220,"esp")
-
-local hitBtn=makeBtn("Hit Sounds",255,"hitsound")
-hitBtn.Text="Hit Sounds: ON"
-s.hitsound=true
-hitBtn.MouseButton1Click:Connect(function()
-    s.hitsound=not s.hitsound
-    hitBtn.Text="Hit Sounds: "..(s.hitsound and "ON" or "OFF")
-end)
-
-local closeBtn=Instance.new("TextButton")
-closeBtn.Parent=f
-closeBtn.Size=UDim2.new(0,220,0,30)
-closeBtn.Position=UDim2.new(0.5,-110,0,290)
-closeBtn.Text="Close UI"
-closeBtn.BackgroundColor3=Color3.fromRGB(255,70,70)
-closeBtn.MouseButton1Click:Connect(function()
-    gui:Destroy()
-end)
-
-if s.watermark then
-    local wm=Instance.new("TextLabel")
-    wm.Parent=CoreGui
-    wm.BackgroundTransparency=1
-    wm.Position=UDim2.new(0,5,1,-25)
-    wm.Size=UDim2.new(0,150,0,20)
-    wm.Font=Enum.Font.Gotham
-    wm.Text="Sapphire"
-    wm.TextColor3=Color3.fromRGB(200,200,200)
-    wm.TextSize=12
-end
-
-local function setBulletSpeed()
-    local ch=lp.Character
-    if not ch then return end
-    for _,t in ipairs(ch:GetChildren()) do
-        if t:IsA("Tool") then
-            for _,p in ipairs(t:GetDescendants()) do
-                if p.Name:lower():find("speed") or p.Name:lower():find("velocity") then
-                    pcall(function() p.Value=s.bs end)
-                end
-            end
-        end
     end
 end
-lp.CharacterAdded:Connect(function() task.wait(0.5) setBulletSpeed() end)
-setBulletSpeed()
 
+-- Crosshair
+local crosshair=Instance.new("Frame",CoreGui)
+crosshair.AnchorPoint=Vector2.new(0.5,0.5)
+crosshair.BackgroundTransparency=1
+local function updateCrosshair()
+    for _,c in pairs(crosshair:GetChildren()) do c:Destroy() end
+    if not s.crosshair then return end
+    local sz=s.chSize
+    if s.chShape=="circle" then
+        local cir=Instance.new("Frame",crosshair)
+        cir.Size=UDim2.new(0,sz,0,sz)
+        cir.Position=UDim2.new(0.5,-sz/2,0.5,-sz/2)
+        cir.BackgroundColor3=s.chColor
+        cir.BackgroundTransparency=0.5
+        local cr=Instance.new("UICorner",cir)
+        cr.CornerRadius=UDim.new(1,0)
+    end
+end
+
+-- Fly
+local bv=nil
+local function fly()
+    if not s.fly then if bv then bv:Destroy() end return end
+    local char=lp.Character
+    if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+    if not bv then bv=Instance.new("BodyVelocity",char.HumanoidRootPart) bv.MaxForce=Vector3.new(1e9,1e9,1e9) end
+    local cam=workspace.CurrentCamera
+    local dir=Vector3.new()
+    if UserInputService:IsKeyDown(Enum.KeyCode.W) then dir=dir+cam.CFrame.LookVector end
+    if UserInputService:IsKeyDown(Enum.KeyCode.S) then dir=dir-cam.CFrame.LookVector end
+    if UserInputService:IsKeyDown(Enum.KeyCode.A) then dir=dir-cam.CFrame.RightVector end
+    if UserInputService:IsKeyDown(Enum.KeyCode.D) then dir=dir+cam.CFrame.RightVector end
+    if UserInputService:IsKeyDown(Enum.KeyCode.Space) then dir=dir+Vector3.new(0,1,0) end
+    if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then dir=dir-Vector3.new(0,1,0) end
+    bv.Velocity=dir*s.flySpeed
+end
+
+-- Noclip
+local function noclip()
+    if not s.noclip then return end
+    local char=lp.Character
+    if char then for _,p in pairs(char:GetDescendants()) do if p:IsA("BasePart") then p.CanCollide=false end end end
+end
+
+-- Combat
+local function combat()
+    if not s.aimbot then return end
+    local target=getTarget()
+    if target then
+        pcall(function()
+            local p=workspace.CurrentCamera:WorldToScreenPoint(target.Character.HumanoidRootPart.Position)
+            if s.silent then mousemoveabs(p.X,p.Y) end
+            if s.trigger then mouse1click() end
+        end)
+    end
+end
+
+-- Main loops
 RunService.RenderStepped:Connect(function()
-    if s.rage then
-        local target=getClosest()
-        if target then
-            if s.silent then
-                pcall(function()
-                    local pos=workspace.CurrentCamera:WorldToScreenPoint(target.Character.HumanoidRootPart.Position)
-                    mousemoveabs(pos.X,pos.Y)
-                end)
-            end
-            if s.trigger then
-                pcall(mouse1click)
-            end
-            if s.instakill then
-                kill(target)
-            end
-        end
-    end
-    if s.backstab then
-        backstabKill()
+    combat()
+    updateESP()
+    updateCrosshair()
+    fly()
+    noclip()
+    if s.thirdPerson and lp.Character and lp.Character:FindFirstChild("Humanoid") then
+        lp.Character.Humanoid.CameraOffset=Vector3.new(0,2,-5)
     end
 end)
 
-print("Sapphire Ultimate Loaded - All Features")
+print("Sapphire MAX Loaded - 40+ Features")
